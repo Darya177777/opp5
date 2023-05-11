@@ -31,17 +31,9 @@ int ExecutedTasks;
 int AdditionalTasks;
 double globalRes = 0;
 
-void printTasks(int *taskSet) {
-    std::cout << "Process :" << ProcessRank;
-    for (int i = 0; i < TASK_COUNT; i++) {
-        std::cout << taskSet[i] << " ";
-    }
-    std::cout << std::endl;
-}
-
 void initializeTaskSet(int *taskSet, int taskCount, int iterCounter) {
     for (int i = 0; i < taskCount; i++) {
-        taskSet[i] = abs(50 - i%100)*abs(ProcessRank - (iterCounter % ProcessCount))*L;
+        taskSet[i] = abs(i%100)*abs(ProcessRank - (iterCounter % ProcessCount))*L;
     }
 }
 
@@ -65,7 +57,7 @@ void* ExecutorStartRoutine(void * args) {
     tasks = new int[TASK_COUNT];
     double StartTime, FinishTime, IterationDuration, ShortestIteration, LongestIteration;
 
-    for(int i = 0; i < LISTS_COUNT; i++) {
+    for (int i = 0; i < LISTS_COUNT; i++) {
         StartTime = MPI_Wtime();
         MPI_Barrier(MPI_COMM_WORLD);
         std::cout << "Iteration " << i << ". Initializing tasks. " << std::endl;
@@ -107,13 +99,11 @@ void* ExecutorStartRoutine(void * args) {
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        std::cout << "Process " << ProcessRank << " executed " << ExecutedTasks <<
-        " tasks. " << AdditionalTasks << " were additional." << std::endl;
+        std::cout << "Process " << ProcessRank << " executed " << ExecutedTasks << " tasks. " << AdditionalTasks << " were additional." << std::endl;
         std::cout << "Cos sum is " << globalRes << ". Time taken: " << IterationDuration << std::endl;
         SummaryDisbalance += (LongestIteration - ShortestIteration)/LongestIteration;
         std::cout << "Max time difference: " << LongestIteration - ShortestIteration  << std::endl;
-        std::cout << "Disbalance rate is " <<
-        ((LongestIteration - ShortestIteration)/ LongestIteration) * 100 << "%" << std::endl;
+        std::cout << "Disbalance rate is " << ((LongestIteration - ShortestIteration)/ LongestIteration) * 100 << "%" << std::endl;
         LogFiles[ProcessRank] << IterationDuration << std::endl;
     }
 
