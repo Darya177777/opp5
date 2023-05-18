@@ -60,6 +60,27 @@ void executeTaskSet(int * taskSet, void * glp) {
     gl->RemainingTasks = 0;
 }
 
+void * AddTask(void * glp) {
+    GlobalElements * gl = (GlobalElements *)glp;
+    int ThreadResponse;
+    for (int procIdx = 0; procIdx < gl->ProcessCount; procIdx++) {
+        if (procIdx == gl->ProcessRank)
+            continue;
+        MPI_Send(&gl->ProcessRank, 1, MPI_INT, procIdx, 888, MPI_COMM_WORLD);
+        MPI_Recv(&ThreadResponse, 1, MPI_INT, procIdx, SENDING_TASK_COUNT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (ThreadResponse == NO_TASKS_TO_SHARE)
+             continue;
+        gl->AdditionalTasks = ThreadResponse;
+        memset(gl->tasks, 0, TASK_COUNT);
+        MPI_Recv(gl->tasks, gl->AdditionalTasks, MPI_INT, procIdx, SENDING_TASKS, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        pthread_mutex_lock(&gl->mutex);
+        gl->RemainingTasks = gl->AdditionalTasks;
+        pthread_mutex_unlock(&gl->mutex);
+        executeTaskSet(gl->tasks, gl);
+    }
+    pthread_exit(nullptr);
+}
+
 void* ExecutorStartRoutine(void * glp) {
     GlobalElements * gl = (GlobalElements *)glp;
     gl->tasks = new int[TASK_COUNT];
@@ -73,23 +94,7 @@ void* ExecutorStartRoutine(void * glp) {
         gl->RemainingTasks = TASK_COUNT;
         gl->AdditionalTasks = 0;
         executeTaskSet(gl->tasks, gl);
-        int ThreadResponse;
-
-        for (int procIdx = 0; procIdx < gl->ProcessCount; procIdx++) {
-            if (procIdx == gl->ProcessRank)
-                continue;
-            MPI_Send(&gl->ProcessRank, 1, MPI_INT, procIdx, 888, MPI_COMM_WORLD);
-            MPI_Recv(&ThreadResponse, 1, MPI_INT, procIdx, SENDING_TASK_COUNT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            if (ThreadResponse == NO_TASKS_TO_SHARE)
-                continue;
-            gl->AdditionalTasks = ThreadResponse;
-            memset(gl->tasks, 0, TASK_COUNT);
-            MPI_Recv(gl->tasks, gl->AdditionalTasks, MPI_INT, procIdx, SENDING_TASKS, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            pthread_mutex_lock(&gl->mutex);
-            gl->RemainingTasks = gl->AdditionalTasks;
-            pthread_mutex_unlock(&gl->mutex);
-            executeTaskSet(gl->tasks, gl);
-        }
+        AddTask(glp);
         FinishTime = MPI_Wtime();
         IterationDuration = FinishTime - StartTime;
         MPI_Allreduce(&IterationDuration, &LongestIteration, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
