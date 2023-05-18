@@ -87,7 +87,6 @@ void* ExecutorStartRoutine(void * glp) {
     double StartTime, FinishTime, IterationDuration, ShortestIteration, LongestIteration;
 
     for (int i = 0; i < LISTS_COUNT; i++) {
-         std::cout << "55" << std::endl;
         StartTime = MPI_Wtime();
         initializeTaskSet(gl->tasks, TASK_COUNT, i, gl);
         gl->ExecutedTasks = 0;
