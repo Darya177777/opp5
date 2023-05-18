@@ -18,4 +18,4 @@ echo "Using mpicc at `which mpicc`"
 echo "Running $MPI_NP MPI processes"
 
 
-mpicxx -std=gnu++1y -O3 -Wpedantic -Wall -Werror -Wextra itog opp5.cpp -lm -lpthread
+mpicxx -std=gnu++1y -O3 -Wpedantic -Wall -Werror -Wextra -o itog opp5.cpp -lm -lpthread
